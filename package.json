@@ -1,0 +1,123 @@
+{
+  "name": "telegram-agent-console",
+  "displayName": "Telegram Agent Console",
+  "description": "A VSCode side panel for chatting with ONE Telegram bot - typically your own agent. Single-chat only; not a full Telegram client.",
+  "version": "0.1.0",
+  "publisher": "thisisganesh353",
+  "icon": "media/icon-128.png",
+  "license": "MIT",
+  "author": {
+    "name": "Rakesh Jadhav"
+  },
+  "homepage": "https://github.com/thisisganesh353/telegram-agent-console#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thisisganesh353/telegram-agent-console.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thisisganesh353/telegram-agent-console/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Chat",
+    "Other"
+  ],
+  "keywords": [
+    "telegram",
+    "bot",
+    "chat",
+    "agent",
+    "mtproto",
+    "gramjs",
+    "messaging",
+    "remote control"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "telegram-agent-console",
+          "title": "Agent Chat",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "telegram-agent-console": [
+        {
+          "type": "webview",
+          "id": "telegram-agent-console.chat",
+          "name": "Chat",
+          "contextualTitle": "Agent Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "telegram-agent-console.setup",
+        "title": "Telegram Agent: Setup (API credentials and bot)",
+        "category": "Telegram Agent"
+      },
+      {
+        "command": "telegram-agent-console.login",
+        "title": "Telegram Agent: Login",
+        "category": "Telegram Agent"
+      },
+      {
+        "command": "telegram-agent-console.logout",
+        "title": "Telegram Agent: Logout (clear session)",
+        "category": "Telegram Agent"
+      },
+      {
+        "command": "telegram-agent-console.focus",
+        "title": "Telegram Agent: Focus Chat Panel",
+        "category": "Telegram Agent"
+      }
+    ],
+    "configuration": {
+      "title": "Telegram Agent Console",
+      "properties": {
+        "telegramAgentConsole.botUsername": {
+          "type": "string",
+          "default": "",
+          "description": "Username of the bot to mirror (without @). Set via the Setup command."
+        },
+        "telegramAgentConsole.historyLimit": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 500,
+          "description": "How many recent messages to load when opening the panel."
+        },
+        "telegramAgentConsole.notifyOnIncoming": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a VSCode notification when a new message arrives and the panel is not focused."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "compile": "tsc -p ./ --noEmit",
+    "icon": "node scripts/make-icon.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "telegram": "^2.22.0"
+  }
+}
