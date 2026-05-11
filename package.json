@@ -3,6 +3,7 @@
   "displayName": "Telegram Agent Console",
   "description": "A VSCode side panel for chatting with ONE Telegram bot - typically your own agent. Single-chat only; not a full Telegram client.",
   "version": "0.1.0",
+  "publisher": "IamFishR",
   "license": "MIT",
   "author": {
     "name": "IamFishR"

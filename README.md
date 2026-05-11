@@ -10,42 +10,62 @@ when VSCode is closed. If you want a full Telegram client, this is not
 it.
 
 This is **not published to any marketplace.** Install from source (see
-below). The trade-off is no auto-updates - you `git pull` and rebuild
-when you want the latest.
+below). No auto-updates - you `git pull` and rebuild when you want the
+latest.
 
-## Install from source
+## Install (permanent, recommended)
 
-You need Node.js 18+ and a recent VSCode (1.85 or newer).
+This is the path most people want: build a `.vsix` once, install it,
+and it behaves like any marketplace extension - loads automatically on
+every VSCode start, appears in the Extensions sidebar, uninstall like
+anything else.
+
+Prerequisites: Node.js 18+ and VSCode 1.85 or newer.
 
 ```bash
 git clone https://github.com/IamFishR/telegram-agent-console.git
 cd telegram-agent-console
 npm install
 npm run build
-```
-
-Then load it into VSCode as a developer extension:
-
-1. Open the cloned folder in VSCode.
-2. Press **F5** (or use the "Run and Debug" panel -> "Run Extension").
-3. A second VSCode window opens with the extension loaded. This is the
-   "Extension Development Host."
-
-That second window is where you actually use the extension. Keep the
-first window open while you use it - closing the first window stops the
-extension host.
-
-If you want it to load every time VSCode opens (without F5), build a
-`.vsix` and install it:
-
-```bash
 npx @vscode/vsce package
 code --install-extension telegram-agent-console-0.1.0.vsix
 ```
 
-(The `npx` call downloads `vsce` on demand; no global install needed.
-Note: `vsce package` will warn about a missing `publisher` field - it is
-intentional. Add `--no-yarn` if it asks.)
+That's it. Open VSCode (or reload the window) and the paper-plane icon
+appears in the Activity Bar. `npx` downloads `vsce` on demand - no
+global install needed.
+
+**To update later:**
+
+```bash
+git pull
+npm install
+npm run build
+npx @vscode/vsce package
+code --install-extension telegram-agent-console-0.1.0.vsix --force
+```
+
+The `--force` flag overwrites the previously installed version.
+
+**To uninstall:** Extensions sidebar -> find "Telegram Agent Console"
+-> gear icon -> Uninstall. Or: `code --uninstall-extension IamFishR.telegram-agent-console`.
+
+## Install (dev mode, for hacking on the code)
+
+If you want to modify the extension and see changes live, skip the
+`.vsix` step and run it as a developer extension instead:
+
+```bash
+git clone https://github.com/IamFishR/telegram-agent-console.git
+cd telegram-agent-console
+npm install
+npm run build      # or: npm run watch
+```
+
+Then open the folder in VSCode and press **F5**. A second VSCode window
+opens with the extension loaded ("Extension Development Host"). Use
+the extension in that window; reload it with **Ctrl+R** after code
+changes. Closing the first window stops the extension host.
 
 ## First-time setup
 
