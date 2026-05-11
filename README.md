@@ -129,4 +129,4 @@ The design rationale lives in
 
 ## License
 
-[MIT](LICENSE) (c) 2026 Rakesh Jadhav.
+[MIT](LICENSE) (c) 2026 IamFishR.
