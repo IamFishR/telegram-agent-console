@@ -3,19 +3,19 @@
   "displayName": "Telegram Agent Console",
   "description": "A VSCode side panel for chatting with ONE Telegram bot - typically your own agent. Single-chat only; not a full Telegram client.",
   "version": "0.1.0",
-  "publisher": "thisisganesh353",
+  "publisher": "RakeshJadhav",
   "icon": "media/icon-128.png",
   "license": "MIT",
   "author": {
     "name": "Rakesh Jadhav"
   },
-  "homepage": "https://github.com/thisisganesh353/telegram-agent-console#readme",
+  "homepage": "https://github.com/RakeshJadhav/telegram-agent-console#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/thisisganesh353/telegram-agent-console.git"
+    "url": "https://github.com/RakeshJadhav/telegram-agent-console.git"
   },
   "bugs": {
-    "url": "https://github.com/thisisganesh353/telegram-agent-console/issues"
+    "url": "https://github.com/RakeshJadhav/telegram-agent-console/issues"
   },
   "engines": {
     "vscode": "^1.85.0"
