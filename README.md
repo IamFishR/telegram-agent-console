@@ -1,40 +1,78 @@
 # Telegram Agent Console
 
-A focused VSCode side panel for chatting with **ONE Telegram bot** - typically
-the bot wired up to your own agent on your machine. Stop alt-tabbing to your
-phone every time the agent pings you.
+A focused VSCode side panel for chatting with **ONE Telegram bot** -
+typically the bot wired up to your own agent on your machine. Stop
+alt-tabbing to your phone every time the agent pings you.
 
-**Scope is intentionally tiny:** one bot chat, full read + reply, slash command
-typeahead. No chat list, no media, no contacts, no notifications when VSCode
-is closed. If you want a full Telegram client, this is not it.
+**Scope is intentionally tiny:** one bot chat, full read + reply, slash
+command typeahead. No chat list, no media, no contacts, no notifications
+when VSCode is closed. If you want a full Telegram client, this is not
+it.
 
-## What it looks like
+This is **not published to any marketplace.** Install from source (see
+below). The trade-off is no auto-updates - you `git pull` and rebuild
+when you want the latest.
 
-After installing, you get a paper-plane icon in the Activity Bar. Click it,
-follow the 3-step onboarding (api credentials, bot username, login with your
-phone), and the panel mirrors your bot chat. Messages flow in real time;
-replies send straight from the input box.
+## Install from source
 
-> **Screenshots:** add `media/screenshot-onboarding.png` and
-> `media/screenshot-chat.png` to your project, reference them here, and they
-> will render on the marketplace listing.
+You need Node.js 18+ and a recent VSCode (1.85 or newer).
 
-## Setup
+```bash
+git clone https://github.com/IamFishR/telegram-agent-console.git
+cd telegram-agent-console
+npm install
+npm run build
+```
 
-You need three pieces before first use:
+Then load it into VSCode as a developer extension:
 
-1. **Telegram `api_id` and `api_hash`.** Get them once from
-   [my.telegram.org/apps](https://my.telegram.org/apps) (log in with your
-   phone, create an application). These belong to you, not the bot.
-2. **A Telegram bot you own.** Create one via
-   [@BotFather](https://t.me/BotFather) with `/newbot`. Note the username
-   (you do not need the bot token; this extension talks to the bot AS you,
-   using your account).
-3. **Your phone number.** Used once during login to receive a verification
-   code from Telegram.
+1. Open the cloned folder in VSCode.
+2. Press **F5** (or use the "Run and Debug" panel -> "Run Extension").
+3. A second VSCode window opens with the extension loaded. This is the
+   "Extension Development Host."
 
-In the panel: click **Start Setup**, paste the three values, then click
-**Login** and enter the code Telegram sends.
+That second window is where you actually use the extension. Keep the
+first window open while you use it - closing the first window stops the
+extension host.
+
+If you want it to load every time VSCode opens (without F5), build a
+`.vsix` and install it:
+
+```bash
+npx @vscode/vsce package
+code --install-extension telegram-agent-console-0.1.0.vsix
+```
+
+(The `npx` call downloads `vsce` on demand; no global install needed.
+Note: `vsce package` will warn about a missing `publisher` field - it is
+intentional. Add `--no-yarn` if it asks.)
+
+## First-time setup
+
+Once the extension is loaded:
+
+1. Click the **paper-plane icon** in the Activity Bar.
+2. The onboarding view walks you through three steps:
+   - Get a personal `api_id` and `api_hash` from
+     [my.telegram.org/apps](https://my.telegram.org/apps).
+   - Get your bot's username from
+     [@BotFather](https://t.me/BotFather) (or use an existing bot).
+   - Click **Start Setup**, paste the three values when prompted.
+3. After Setup, click **Login** and enter your phone number, then the
+   one-time code Telegram sends to your phone (and your 2FA password if
+   you have one).
+
+Session is saved in VSCode's `SecretStorage` (OS-encrypted). You only
+do this once per machine.
+
+## Daily use
+
+- The chat panel mirrors your bot chat in real time.
+- Type `Enter` to send (Shift+Enter for newline).
+- Type `/` to see your bot's registered slash commands. Arrow keys +
+  Tab to pick.
+- When the panel is unfocused, an OS notification appears for new
+  messages (toggle via `telegramAgentConsole.notifyOnIncoming`).
 
 ## Commands
 
@@ -49,71 +87,44 @@ In the panel: click **Start Setup**, paste the three values, then click
 
 - `telegramAgentConsole.botUsername` - the bot to mirror (without `@`)
 - `telegramAgentConsole.historyLimit` - messages loaded on open (default 50)
-- `telegramAgentConsole.notifyOnIncoming` - OS notification on new message
-  while the panel is unfocused (default `true`)
+- `telegramAgentConsole.notifyOnIncoming` - OS notification on new
+  message while the panel is unfocused (default `true`)
 
 ## Privacy and security
 
-This is the most important section. Read it.
-
-**What this extension does with your data:**
-
-- Authenticates as **YOUR Telegram account** via MTProto (not as the bot).
-  This is required to send messages AS you - the public Bot API cannot.
-- Stores your `api_id`, `api_hash`, and **MTProto session string** in VSCode
-  `SecretStorage`, which is OS-encrypted (DPAPI on Windows, Keychain on
+- Authenticates as **YOUR Telegram account** via MTProto (not as the
+  bot). This is required to send messages AS you - the public Bot API
+  cannot.
+- Stores `api_id`, `api_hash`, and the **MTProto session string** in
+  VSCode `SecretStorage`, OS-encrypted (DPAPI on Windows, Keychain on
   macOS, the keyring on Linux).
-- Sends and receives messages directly to Telegram servers via gramjs. No
-  third-party proxies, no analytics, no telemetry, no usage data.
+- Talks **only** to Telegram servers via gramjs. No third-party
+  proxies, no analytics, no telemetry, no usage data.
+- `api_id` / `api_hash` are **your** credentials, supplied by you. This
+  extension never bundles or hard-codes any.
 
-**Trust requirements:**
+**To revoke access:** run `Telegram Agent: Logout` from the command
+palette. Or remotely: Telegram app -> Settings -> Devices -> terminate
+the session named after your machine.
 
-- An MTProto session is equivalent in power to being logged into Telegram
-  on a device. If exfiltrated, an attacker can read all your chats and
-  send messages as you until the session is revoked. SecretStorage is
-  OS-encrypted but not magic.
-- `api_id`/`api_hash` are **your** credentials, supplied by you. This
-  extension never bundles or hard-codes any. Some malicious extensions
-  embed their developer's credentials and harvest user accounts; this one
-  does not, by design.
-- The extension is open source (MIT). Verify by reading the code in
-  [src/telegramClient.ts](src/telegramClient.ts) - it is small.
-
-**How to revoke access:**
-
-- Run `Telegram Agent: Logout` from the command palette - clears the
-  session locally.
-- For belt-and-suspenders: open Telegram on your phone -> Settings ->
-  Devices -> terminate the session named after your machine.
-
-**Telemetry:** None. This extension makes network calls only to Telegram
-servers via gramjs. It does not contact any author-controlled server.
+An MTProto session is as powerful as being logged into Telegram on a
+device. SecretStorage is OS-encrypted but not magic. Treat your machine
+accordingly.
 
 ## Limitations (intentional)
 
 - **One chat only.** No chat list, no contacts, no multi-bot.
-- **No media rendering.** Images, files, voice, and stickers appear as
-  plain-text fallbacks (e.g. `[image]`). They still arrive on your phone.
+- **No media rendering.** Images, files, voice, stickers appear as
+  plain-text fallbacks. They still arrive on your phone.
 - **No inline keyboards / reply markup.** Renders as plain text.
-- **Markdown is partial.** Only inline code (`` `like this` ``) and fenced
-  code blocks are rendered. Other Telegram entities render as plain text.
+- **Markdown is partial.** Inline code and fenced code blocks render;
+  other Telegram entities show as plain text.
 - **No typing indicators or read receipts.**
-- **Background notifications stop when VSCode is closed.** The panel only
-  listens while VSCode is running.
+- **Background notifications stop when VSCode is closed.** The panel
+  only listens while VSCode is running.
 
-These are deliberate scope cuts to keep the extension small and focused. If
-one of them genuinely bites in daily use, open an issue.
-
-## Build from source
-
-```bash
-npm install
-npm run build       # bundle with esbuild
-npm run compile     # tsc typecheck (no emit)
-npm run icon        # regenerate the marketplace icon
-```
-
-To run a dev host: open the folder in VSCode, press F5.
+These are deliberate scope cuts. If one of them genuinely bites in
+daily use, open an issue.
 
 ## Project layout
 
@@ -129,4 +140,4 @@ The design rationale lives in
 
 ## License
 
-[MIT](LICENSE) (c) 2026 IamFishR.
+[MIT](LICENSE).

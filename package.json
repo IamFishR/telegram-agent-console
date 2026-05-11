@@ -3,8 +3,6 @@
   "displayName": "Telegram Agent Console",
   "description": "A VSCode side panel for chatting with ONE Telegram bot - typically your own agent. Single-chat only; not a full Telegram client.",
   "version": "0.1.0",
-  "publisher": "IamFishR",
-  "icon": "media/icon-128.png",
   "license": "MIT",
   "author": {
     "name": "IamFishR"
@@ -20,20 +18,6 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": [
-    "Chat",
-    "Other"
-  ],
-  "keywords": [
-    "telegram",
-    "bot",
-    "chat",
-    "agent",
-    "mtproto",
-    "gramjs",
-    "messaging",
-    "remote control"
-  ],
   "main": "./dist/extension.js",
   "activationEvents": [],
   "contributes": {
@@ -102,20 +86,13 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run build",
     "build": "node esbuild.js --production",
     "watch": "node esbuild.js --watch",
-    "compile": "tsc -p ./ --noEmit",
-    "icon": "node scripts/make-icon.js",
-    "package": "vsce package",
-    "publish": "vsce publish",
-    "publish:ovsx": "ovsx publish"
+    "compile": "tsc -p ./ --noEmit"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^2.24.0",
-    "ovsx": "^0.9.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.4.0"
   },
