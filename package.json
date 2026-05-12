@@ -48,6 +48,11 @@
         "category": "Telegram Agent"
       },
       {
+        "command": "telegram-agent-console.config",
+        "title": "Telegram Agent: Edit Settings (API credentials and bot)",
+        "category": "Telegram Agent"
+      },
+      {
         "command": "telegram-agent-console.login",
         "title": "Telegram Agent: Login",
         "category": "Telegram Agent"

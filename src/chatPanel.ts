@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
-import { HostToWebview, WebviewToHost } from './types';
+import { ConfigValues, HostToWebview, WebviewToHost } from './types';
 
 export interface ChatPanelHandlers {
   onReady(): void;
   onSend(tempId: string, text: string): void;
   onLogin(): void;
   onSetup(): void;
+  onOpenConfig(): void;
+  onSaveConfig(values: ConfigValues): void;
 }
 
 export class ChatPanel implements vscode.WebviewViewProvider {
@@ -52,6 +54,12 @@ export class ChatPanel implements vscode.WebviewViewProvider {
           if (typeof msg.url === 'string' && /^(https?|tg):\/\//i.test(msg.url)) {
             void vscode.env.openExternal(vscode.Uri.parse(msg.url));
           }
+          break;
+        case 'openConfig':
+          this.handlers.onOpenConfig();
+          break;
+        case 'saveConfig':
+          this.handlers.onSaveConfig(msg.values);
           break;
       }
     });
@@ -110,6 +118,7 @@ export class ChatPanel implements vscode.WebviewViewProvider {
   <div id="root">
     <div id="status-bar"></div>
     <div id="messages"></div>
+    <div id="config-view" class="hidden"></div>
     <div id="composer">
       <div id="suggestions" class="hidden"></div>
       <textarea id="input" rows="1" placeholder="Message" disabled></textarea>

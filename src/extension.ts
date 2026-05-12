@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { TgClient, AuthCallbacks } from './telegramClient';
 import { Credentials } from './credentials';
 import { ChatPanel } from './chatPanel';
+import { ConfigValues } from './types';
 
 let tg: TgClient | undefined;
 let panel: ChatPanel;
@@ -20,11 +21,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     onSend: (tempId, text) => { void handleSend(tempId, text); },
     onLogin: () => { void doLogin(); },
     onSetup: () => { void doSetup(); },
+    onOpenConfig: () => { void doOpenConfig(); },
+    onSaveConfig: (values) => { void doSaveConfig(values); },
   });
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ChatPanel.viewType, panel),
     vscode.commands.registerCommand('telegram-agent-console.setup', doSetup),
+    vscode.commands.registerCommand('telegram-agent-console.config', doOpenConfigCommand),
     vscode.commands.registerCommand('telegram-agent-console.login', doLogin),
     vscode.commands.registerCommand('telegram-agent-console.logout', doLogout),
     vscode.commands.registerCommand('telegram-agent-console.focus', () => panel.reveal()),
@@ -181,6 +185,75 @@ async function doSetup(): Promise<void> {
 
   vscode.window.showInformationMessage('Telegram Agent: credentials saved. Now run Login.');
   await reconnect();
+}
+
+async function doOpenConfig(): Promise<void> {
+  const apiId = await credentials.getApiId();
+  const apiHash = await credentials.getApiHash();
+  const botUsername = (vscode.workspace
+    .getConfiguration('telegramAgentConsole')
+    .get<string>('botUsername') ?? '').trim();
+  panel.post({
+    type: 'configValues',
+    values: {
+      apiId: apiId !== undefined ? String(apiId) : '',
+      apiHash: apiHash ?? '',
+      botUsername,
+    },
+  });
+}
+
+async function doOpenConfigCommand(): Promise<void> {
+  panel.reveal();
+  await doOpenConfig();
+}
+
+async function doSaveConfig(values: ConfigValues): Promise<void> {
+  const apiIdStr = (values.apiId ?? '').trim();
+  const apiHash = (values.apiHash ?? '').trim();
+  const botUsername = (values.botUsername ?? '').trim().replace(/^@/, '');
+
+  if (!/^\d+$/.test(apiIdStr)) {
+    panel.post({ type: 'configError', error: 'API ID must be a number.' });
+    return;
+  }
+  if (apiHash.length < 16) {
+    panel.post({ type: 'configError', error: 'API hash looks too short.' });
+    return;
+  }
+  if (!botUsername) {
+    panel.post({ type: 'configError', error: 'Bot username is required.' });
+    return;
+  }
+
+  const newApiId = Number(apiIdStr);
+  const prevApiId = await credentials.getApiId();
+  const prevApiHash = await credentials.getApiHash();
+  const credsChanged = prevApiId !== newApiId || prevApiHash !== apiHash;
+
+  try {
+    await credentials.setApiId(newApiId);
+    await credentials.setApiHash(apiHash);
+    await vscode.workspace
+      .getConfiguration('telegramAgentConsole')
+      .update('botUsername', botUsername, vscode.ConfigurationTarget.Global);
+
+    if (credsChanged) {
+      // Session is bound to the old api_id/api_hash; drop it so the user re-logs in.
+      await credentials.clearSession();
+    }
+
+    panel.post({ type: 'configSaved' });
+    vscode.window.showInformationMessage(
+      credsChanged
+        ? 'Telegram Agent: settings saved. Session cleared — run Login.'
+        : 'Telegram Agent: settings saved.',
+    );
+    await reconnect();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    panel.post({ type: 'configError', error: msg });
+  }
 }
 
 async function doLogin(): Promise<void> {

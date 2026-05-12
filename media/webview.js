@@ -6,6 +6,7 @@
 
   const messagesEl = document.getElementById('messages');
   const statusEl = document.getElementById('status-bar');
+  const configEl = document.getElementById('config-view');
   const inputEl = document.getElementById('input');
   const sendBtn = document.getElementById('send');
   const suggestionsEl = document.getElementById('suggestions');
@@ -13,6 +14,7 @@
   let commands = [];
   let visibleSuggestions = [];
   let selectedIdx = 0;
+  let configOpen = false;
   const pendingByTempId = new Map();
   const displayedIds = new Set();
 
@@ -138,8 +140,7 @@
     sendBtn.disabled = !connected;
 
     if (state === 'noCredentials' || state === 'noBot') {
-      statusEl.innerHTML = '';
-      statusEl.classList.remove('visible');
+      renderStatusBar(state, detail);
       renderOnboarding(state);
       return;
     }
@@ -149,37 +150,177 @@
       messagesEl.innerHTML = '';
     }
 
+    renderStatusBar(state, detail);
+  }
+
+  function renderStatusBar(state, detail) {
     statusEl.innerHTML = '';
-    if (connected) {
-      statusEl.classList.remove('visible');
-      return;
-    }
-    statusEl.classList.add('visible');
+
+    const connected = state === 'connected';
     let text = '';
-    let btn = null;
+    let actionBtn = null;
     switch (state) {
       case 'loggedOut':
         text = detail ? 'Not logged in: ' + detail : 'Not logged in.';
-        btn = { label: 'Login', action: 'login' };
+        actionBtn = { label: 'Login', action: 'login' };
         break;
       case 'connecting':
         text = (detail || 'Connecting') + '...';
         break;
+      case 'noCredentials':
+      case 'noBot':
+        text = '';
+        break;
+      case 'connected':
+        text = '';
+        break;
       default:
         text = state;
     }
+
     const span = document.createElement('span');
     span.textContent = text;
     span.style.flex = '1';
     statusEl.appendChild(span);
-    if (btn) {
+
+    if (actionBtn) {
       const b = document.createElement('button');
-      b.textContent = btn.label;
+      b.textContent = actionBtn.label;
       b.addEventListener('click', function () {
-        vscode.postMessage({ type: btn.action });
+        vscode.postMessage({ type: actionBtn.action });
       });
       statusEl.appendChild(b);
     }
+
+    const cfg = document.createElement('button');
+    cfg.textContent = 'Config';
+    cfg.className = 'config-btn';
+    cfg.title = 'Edit API ID, API hash, and bot username';
+    cfg.addEventListener('click', function () {
+      vscode.postMessage({ type: 'openConfig' });
+    });
+    statusEl.appendChild(cfg);
+
+    // Always visible so Config is reachable. When connected with no text/action,
+    // the bar stays slim and only shows the Config button.
+    statusEl.classList.add('visible');
+    if (connected && !text) {
+      statusEl.classList.add('slim');
+    } else {
+      statusEl.classList.remove('slim');
+    }
+  }
+
+  function openConfigView(values) {
+    configOpen = true;
+    messagesEl.classList.add('hidden');
+    configEl.classList.remove('hidden');
+    renderConfigView(values);
+  }
+
+  function closeConfigView() {
+    configOpen = false;
+    configEl.classList.add('hidden');
+    configEl.innerHTML = '';
+    messagesEl.classList.remove('hidden');
+  }
+
+  function renderConfigView(values) {
+    const apiId = values && values.apiId ? values.apiId : '';
+    const apiHash = values && values.apiHash ? values.apiHash : '';
+    const botUsername = values && values.botUsername ? values.botUsername : '';
+
+    configEl.innerHTML =
+      '<div class="config">' +
+        '<h2>Settings</h2>' +
+        '<p class="lead">Edit your Telegram credentials and bot username, then Save. ' +
+        'Changing API ID or hash will clear the saved session and require a new login.</p>' +
+
+        '<div class="field">' +
+          '<label for="cfg-api-id">API ID</label>' +
+          '<input id="cfg-api-id" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" />' +
+          '<p class="hint">Numeric, from my.telegram.org/apps</p>' +
+        '</div>' +
+
+        '<div class="field">' +
+          '<label for="cfg-api-hash">API hash</label>' +
+          '<div class="input-row">' +
+            '<input id="cfg-api-hash" type="password" autocomplete="off" spellcheck="false" />' +
+            '<button type="button" class="reveal-btn" id="cfg-api-hash-reveal">Show</button>' +
+          '</div>' +
+          '<p class="hint">From my.telegram.org/apps</p>' +
+        '</div>' +
+
+        '<div class="field">' +
+          '<label for="cfg-bot">Bot username</label>' +
+          '<input id="cfg-bot" type="text" autocomplete="off" spellcheck="false" />' +
+          '<p class="hint">Without the @ prefix</p>' +
+        '</div>' +
+
+        '<div class="config-error hidden" id="cfg-error"></div>' +
+
+        '<div class="config-actions">' +
+          '<button class="primary" id="cfg-save">Save</button>' +
+          '<button id="cfg-cancel">Cancel</button>' +
+        '</div>' +
+      '</div>';
+
+    const apiIdInput = document.getElementById('cfg-api-id');
+    const apiHashInput = document.getElementById('cfg-api-hash');
+    const botInput = document.getElementById('cfg-bot');
+    apiIdInput.value = apiId;
+    apiHashInput.value = apiHash;
+    botInput.value = botUsername;
+
+    const revealBtn = document.getElementById('cfg-api-hash-reveal');
+    revealBtn.addEventListener('click', function () {
+      if (apiHashInput.type === 'password') {
+        apiHashInput.type = 'text';
+        revealBtn.textContent = 'Hide';
+      } else {
+        apiHashInput.type = 'password';
+        revealBtn.textContent = 'Show';
+      }
+    });
+
+    const saveBtn = document.getElementById('cfg-save');
+    saveBtn.addEventListener('click', function () {
+      hideConfigError();
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      vscode.postMessage({
+        type: 'saveConfig',
+        values: {
+          apiId: apiIdInput.value,
+          apiHash: apiHashInput.value,
+          botUsername: botInput.value,
+        },
+      });
+    });
+
+    const cancelBtn = document.getElementById('cfg-cancel');
+    cancelBtn.addEventListener('click', function () {
+      closeConfigView();
+    });
+  }
+
+  function showConfigError(msg) {
+    const errEl = document.getElementById('cfg-error');
+    if (!errEl) return;
+    errEl.textContent = msg;
+    errEl.classList.remove('hidden');
+    const saveBtn = document.getElementById('cfg-save');
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
+  }
+
+  function hideConfigError() {
+    const errEl = document.getElementById('cfg-error');
+    if (!errEl) return;
+    errEl.textContent = '';
+    errEl.classList.add('hidden');
   }
 
   function renderOnboarding(state) {
@@ -408,6 +549,15 @@
         break;
       case 'commands':
         commands = msg.commands || [];
+        break;
+      case 'configValues':
+        openConfigView(msg.values);
+        break;
+      case 'configSaved':
+        closeConfigView();
+        break;
+      case 'configError':
+        showConfigError(msg.error || 'Could not save settings.');
         break;
     }
   });
