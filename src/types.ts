@@ -1,3 +1,13 @@
+export type ChatButtonKind = 'url' | 'callback' | 'text' | 'unsupported';
+
+export interface ChatButton {
+  text: string;
+  kind: ChatButtonKind;
+  url?: string;
+  row: number;
+  col: number;
+}
+
 export interface ChatMessage {
   id?: number;
   tempId?: string;
@@ -6,6 +16,7 @@ export interface ChatMessage {
   timestamp: number;
   pending?: boolean;
   error?: string;
+  buttons?: ChatButton[][];
 }
 
 export interface BotCommand {
@@ -35,7 +46,9 @@ export type HostToWebview =
   | { type: 'commands'; commands: BotCommand[] }
   | { type: 'configValues'; values: ConfigValues }
   | { type: 'configSaved' }
-  | { type: 'configError'; error: string };
+  | { type: 'configError'; error: string }
+  | { type: 'typing'; isTyping: boolean }
+  | { type: 'buttonResult'; messageId: number; row: number; col: number; alert?: string; error?: string };
 
 export type WebviewToHost =
   | { type: 'ready' }
@@ -44,4 +57,5 @@ export type WebviewToHost =
   | { type: 'setup' }
   | { type: 'openExternal'; url: string }
   | { type: 'openConfig' }
-  | { type: 'saveConfig'; values: ConfigValues };
+  | { type: 'saveConfig'; values: ConfigValues }
+  | { type: 'clickButton'; messageId: number; row: number; col: number };

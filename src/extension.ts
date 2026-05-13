@@ -23,6 +23,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     onSetup: () => { void doSetup(); },
     onOpenConfig: () => { void doOpenConfig(); },
     onSaveConfig: (values) => { void doSaveConfig(values); },
+    onClickButton: (messageId, row, col) => { void handleClickButton(messageId, row, col); },
   });
 
   context.subscriptions.push(
@@ -98,6 +99,9 @@ async function bootstrap(): Promise<void> {
       panel.post({ type: 'newMessage', message: m });
       maybeNotify(m);
     });
+    tg.onTyping((isTyping) => {
+      panel.post({ type: 'typing', isTyping });
+    });
     tg.startListening();
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -132,6 +136,29 @@ async function handleSend(tempId: string, text: string): Promise<void> {
     const msg = e instanceof Error ? e.message : String(e);
     output.appendLine('send failed: ' + msg);
     panel.post({ type: 'sendError', tempId, error: msg });
+  }
+}
+
+async function handleClickButton(
+  messageId: number,
+  row: number,
+  col: number,
+): Promise<void> {
+  if (!tg) {
+    panel.post({ type: 'buttonResult', messageId, row, col, error: 'Not connected' });
+    return;
+  }
+  try {
+    const answer = await tg.clickButton(messageId, row, col);
+    const alert = answer?.message;
+    panel.post({ type: 'buttonResult', messageId, row, col, alert });
+    if (answer?.alert && alert) {
+      void vscode.window.showInformationMessage(alert);
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    output.appendLine('button click failed: ' + msg);
+    panel.post({ type: 'buttonResult', messageId, row, col, error: msg });
   }
 }
 

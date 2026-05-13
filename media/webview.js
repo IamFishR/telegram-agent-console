@@ -7,6 +7,7 @@
   const messagesEl = document.getElementById('messages');
   const statusEl = document.getElementById('status-bar');
   const configEl = document.getElementById('config-view');
+  const typingEl = document.getElementById('typing-indicator');
   const inputEl = document.getElementById('input');
   const sendBtn = document.getElementById('send');
   const suggestionsEl = document.getElementById('suggestions');
@@ -15,6 +16,8 @@
   let visibleSuggestions = [];
   let selectedIdx = 0;
   let configOpen = false;
+  let typingTimer = null;
+  const TYPING_TIMEOUT_MS = 6500;
   const pendingByTempId = new Map();
   const displayedIds = new Set();
 
@@ -48,6 +51,9 @@
   }
 
   function makeMessageEl(msg) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-wrap ' + (msg.outgoing ? 'outgoing' : 'incoming');
+
     const el = document.createElement('div');
     el.className = 'msg ' + (msg.outgoing ? 'outgoing' : 'incoming');
     if (msg.pending) el.classList.add('pending');
@@ -62,7 +68,64 @@
     time.textContent = timeText;
     el.appendChild(body);
     el.appendChild(time);
-    return el;
+    wrap.appendChild(el);
+
+    if (msg.buttons && msg.buttons.length && typeof msg.id === 'number') {
+      wrap.appendChild(makeButtonsEl(msg.id, msg.buttons));
+    }
+    return wrap;
+  }
+
+  function makeButtonsEl(messageId, rows) {
+    const container = document.createElement('div');
+    container.className = 'msg-buttons';
+    for (let r = 0; r < rows.length; r++) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'btn-row';
+      const row = rows[r];
+      for (let c = 0; c < row.length; c++) {
+        rowEl.appendChild(makeButtonEl(messageId, row[c]));
+      }
+      container.appendChild(rowEl);
+    }
+    return container;
+  }
+
+  function makeButtonEl(messageId, btn) {
+    const b = document.createElement('button');
+    b.className = 'inline-btn kind-' + btn.kind;
+    b.textContent = btn.text || '?';
+    if (btn.kind === 'unsupported') {
+      b.disabled = true;
+      b.title = 'This button type is not supported';
+      return b;
+    }
+    if (btn.kind === 'url') {
+      b.title = btn.url || '';
+      b.addEventListener('click', function () {
+        if (btn.url) {
+          vscode.postMessage({ type: 'openExternal', url: btn.url });
+        }
+      });
+      return b;
+    }
+    b.addEventListener('click', function () {
+      if (b.disabled) return;
+      b.disabled = true;
+      b.classList.add('clicked');
+      vscode.postMessage({
+        type: 'clickButton',
+        messageId: messageId,
+        row: btn.row,
+        col: btn.col,
+      });
+      // Re-enable after a short window so the user can retry if no response arrives
+      setTimeout(function () {
+        b.disabled = false;
+        b.classList.remove('clicked');
+      }, 4000);
+    });
+    return b;
   }
 
   function scrollToBottom() {
@@ -99,6 +162,9 @@
       if (displayedIds.has(msg.id)) return;
       displayedIds.add(msg.id);
     }
+    if (!msg.outgoing) {
+      setTyping(false);
+    }
     clearEmpty();
     const el = makeMessageEl(msg);
     messagesEl.appendChild(el);
@@ -128,8 +194,9 @@
     const pendingEl = pendingByTempId.get(tempId);
     if (!pendingEl) return;
     pendingByTempId.delete(tempId);
-    pendingEl.classList.remove('pending');
-    pendingEl.classList.add('error');
+    const inner = pendingEl.querySelector('.msg') || pendingEl;
+    inner.classList.remove('pending');
+    inner.classList.add('error');
     const timeEl = pendingEl.querySelector('.time');
     if (timeEl) timeEl.textContent += ' - failed: ' + error;
   }
@@ -559,8 +626,44 @@
       case 'configError':
         showConfigError(msg.error || 'Could not save settings.');
         break;
+      case 'typing':
+        setTyping(msg.isTyping);
+        break;
+      case 'buttonResult':
+        handleButtonResult(msg);
+        break;
     }
   });
+
+  function setTyping(isTyping) {
+    if (typingTimer) {
+      clearTimeout(typingTimer);
+      typingTimer = null;
+    }
+    if (isTyping) {
+      typingEl.classList.remove('hidden');
+      scrollToBottom();
+      // Telegram resends typing every few seconds; clear if the stream stops.
+      typingTimer = setTimeout(function () {
+        typingEl.classList.add('hidden');
+        typingTimer = null;
+      }, TYPING_TIMEOUT_MS);
+    } else {
+      typingEl.classList.add('hidden');
+    }
+  }
+
+  function handleButtonResult(msg) {
+    // Bot returned a callback answer — show inline below the message.
+    // No-op for now beyond the error path; alert text is shown via vscode notification on host side.
+    if (msg.error) {
+      const note = document.createElement('div');
+      note.className = 'btn-note error';
+      note.textContent = 'Button failed: ' + msg.error;
+      messagesEl.appendChild(note);
+      scrollToBottom();
+    }
+  }
 
   vscode.postMessage({ type: 'ready' });
 })();

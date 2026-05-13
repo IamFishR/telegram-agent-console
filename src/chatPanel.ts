@@ -8,6 +8,7 @@ export interface ChatPanelHandlers {
   onSetup(): void;
   onOpenConfig(): void;
   onSaveConfig(values: ConfigValues): void;
+  onClickButton(messageId: number, row: number, col: number): void;
 }
 
 export class ChatPanel implements vscode.WebviewViewProvider {
@@ -60,6 +61,9 @@ export class ChatPanel implements vscode.WebviewViewProvider {
           break;
         case 'saveConfig':
           this.handlers.onSaveConfig(msg.values);
+          break;
+        case 'clickButton':
+          this.handlers.onClickButton(msg.messageId, msg.row, msg.col);
           break;
       }
     });
@@ -118,6 +122,7 @@ export class ChatPanel implements vscode.WebviewViewProvider {
   <div id="root">
     <div id="status-bar"></div>
     <div id="messages"></div>
+    <div id="typing-indicator" class="hidden"><span class="dots"><span></span><span></span><span></span></span><span class="label">typing</span></div>
     <div id="config-view" class="hidden"></div>
     <div id="composer">
       <div id="suggestions" class="hidden"></div>
