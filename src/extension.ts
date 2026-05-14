@@ -2,7 +2,17 @@ import * as vscode from 'vscode';
 import { TgClient, AuthCallbacks } from './telegramClient';
 import { Credentials } from './credentials';
 import { ChatPanel } from './chatPanel';
-import { ConfigValues } from './types';
+import { ChatMessage, ConfigValues } from './types';
+
+async function withRenderedHtml(msg: ChatMessage): Promise<ChatMessage> {
+  if (msg.outgoing || !msg.text) return msg;
+  try {
+    const html = await vscode.commands.executeCommand<string>('markdown.api.render', msg.text);
+    return { ...msg, renderedHtml: html ?? undefined };
+  } catch {
+    return msg;
+  }
+}
 
 let tg: TgClient | undefined;
 let panel: ChatPanel;
@@ -93,10 +103,12 @@ async function bootstrap(): Promise<void> {
       tg.getHistory(limit),
       tg.getCommands(),
     ]);
-    panel.post({ type: 'init', messages: history, botUsername, commands });
+    const renderedHistory = await Promise.all(history.map(withRenderedHtml));
+    panel.post({ type: 'init', messages: renderedHistory, botUsername, commands });
 
-    tg.onMessage((m) => {
-      panel.post({ type: 'newMessage', message: m });
+    tg.onMessage(async (m) => {
+      const rendered = await withRenderedHtml(m);
+      panel.post({ type: 'newMessage', message: rendered });
       maybeNotify(m);
     });
     tg.onTyping((isTyping) => {

@@ -12,6 +12,7 @@ export interface ChatMessage {
   id?: number;
   tempId?: string;
   text: string;
+  renderedHtml?: string;
   outgoing: boolean;
   timestamp: number;
   pending?: boolean;

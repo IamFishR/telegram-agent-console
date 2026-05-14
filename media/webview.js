@@ -33,15 +33,6 @@
     });
   }
 
-  function renderText(text) {
-    const escaped = escapeHtml(text);
-    const withBlocks = escaped.replace(/```([\s\S]*?)```/g, function (_m, code) {
-      return '<pre class="codeblock">' + code.replace(/^\n/, '') + '</pre>';
-    });
-    return withBlocks.replace(/`([^`\n]+)`/g, function (_m, code) {
-      return '<span class="code">' + code + '</span>';
-    });
-  }
 
   function formatTime(ts) {
     const d = new Date(ts);
@@ -60,7 +51,12 @@
     if (msg.error) el.classList.add('error');
     const body = document.createElement('div');
     body.className = 'body';
-    body.innerHTML = renderText(msg.text || '');
+    if (!msg.outgoing && msg.renderedHtml) {
+      body.classList.add('md-body');
+      body.innerHTML = msg.renderedHtml;
+    } else {
+      body.innerHTML = escapeHtml(msg.text || '');
+    }
     const time = document.createElement('div');
     time.className = 'time';
     let timeText = formatTime(msg.timestamp);
@@ -133,6 +129,17 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
     });
   }
+
+  messagesEl.addEventListener('click', function (e) {
+    const a = e.target && e.target.closest && e.target.closest('a[href]');
+    if (a && a.closest('.md-body')) {
+      e.preventDefault();
+      const url = a.getAttribute('href');
+      if (url && /^(https?|tg):\/\//i.test(url)) {
+        vscode.postMessage({ type: 'openExternal', url: url });
+      }
+    }
+  });
 
   function clearEmpty() {
     const empty = messagesEl.querySelector('.empty');
