@@ -16,6 +16,17 @@
   "bugs": {
     "url": "https://github.com/IamFishR/telegram-agent-console/issues"
   },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "telegram",
+    "bot",
+    "chat",
+    "agent",
+    "ai",
+    "assistant"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },

@@ -9,11 +9,14 @@ command typeahead. No chat list, no media, no contacts, no notifications
 when VSCode is closed. If you want a full Telegram client, this is not
 it.
 
-This is **not published to any marketplace.** Install from source (see
-below). No auto-updates - you `git pull` and rebuild when you want the
-latest.
+Available on the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=IamFishR.telegram-agent-console).
+Search **"Telegram Agent Console"** in the Extensions panel, or install via command line:
 
-## Install (permanent, recommended)
+```bash
+code --install-extension IamFishR.telegram-agent-console
+```
+
+## Install from source (build your own .vsix)
 
 This is the path most people want: build a `.vsix` once, install it,
 and it behaves like any marketplace extension - loads automatically on
